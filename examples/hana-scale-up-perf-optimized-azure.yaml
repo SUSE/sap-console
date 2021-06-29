@@ -453,3 +453,20 @@ groups:
           ## References
           - section 2 in https://documentation.suse.com/sbp/all/single-html/SLES4SAP-hana-sr-guide-PerfOpt-15/
         scored: true
+      - id: 2.2.9
+        description: "SAP Host Agent is installed"
+        audit: |
+          if sudo /usr/sap/hostctrl/exe/saphostctrl -function Ping | grep -q SUCCESS; then
+            sudo /usr/sap/hostctrl/exe/sapcontrol -nr 99 -function CheckHostAgent
+          fi
+        tests:
+          test_items:
+            - flag: 'SAPHostAgent Installed'
+        remediation: |
+          ## Abstract
+          SAP Host Agent should be installed on all cluster nodes
+          ## Remediation
+          Install SAP Host Agent. Follow confluence link to the relevant section of the Best Practice/Setup Guide.
+          ## Reference
+          Section 6.1 in https://documentation.suse.com/sbp/all/single-html/SLES4SAP-hana-sr-guide-PerfOpt-15/
+        scored: true
