@@ -233,10 +233,10 @@ func (a *Agent) startCheckTicker() {
 func (a *Agent) startDiscoverTicker() {
 	tick := func() {
 		for _, d := range a.discoveries {
-			var status string
+			var status, result string
 			var err error
 
-			err = d.Discover()
+			result, err = d.Discover()
 			if err != nil {
 				log.Printf("Error while running discovery '%s': %s", d.GetId(), err)
 				status = consulApi.HealthWarning
@@ -244,7 +244,7 @@ func (a *Agent) startDiscoverTicker() {
 				status = consulApi.HealthPassing
 			}
 
-			err = a.consul.Agent().UpdateTTL(d.GetId(), "", status)
+			err = a.consul.Agent().UpdateTTL(d.GetId(), result, status)
 			if err != nil {
 				log.Println("An error occurred while trying to update TTL with Consul:", err)
 			}
