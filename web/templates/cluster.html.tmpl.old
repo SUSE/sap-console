@@ -1,0 +1,129 @@
+{{ define "content" }}
+    <div class="col">
+        <h6><a href="/clusters">Clusters</a> > {{ .Cluster.Name }}</h6>
+        <h1>Cluster details</h1>
+        <dl class="inline">
+            <dt class="inline">Hosts number</dt>
+            <dd class="inline">{{ .Cluster.Crmmon.Summary.Nodes.Number }}</dd>
+            <dt class="inline">Resource number</dt>
+            <dd class="inline">{{ .Cluster.Crmmon.Summary.Resources.Number }}</dd>
+            <dt class="inline">Fencing type</dt>
+            <dd class="inline">{{ .Cluster.FencingType }}</dd>
+            {{- range .Cluster.Cib.Configuration.CrmConfig.ClusterProperties }}
+                <dt class="inline">{{ .Id }}</dt>
+                <dd class="inline">{{ .Value }}</dd>
+            {{- end }}
+        </dl>
+        {{- if not .Cluster.IsFencingEnabled }}
+            <div class="alert alert-section alert-danger">
+                <i class="eos-icons eos-18 alert-icon">danger</i>
+                <div class="alert-body">
+                    <div class="alert-title">Fencing disabled</div>
+                    Fencing is not enabled in the cluster. Fencing is mandatory for a correct functioning of the
+                    cluster.<br>Find more information <a
+                            href="https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-guide/#sec-ha-requirements-hw"
+                            target="_blank">here</a>.
+                </div>
+            </div>
+        {{- end }}
+        {{- if not .Cluster.FencingResourceExists }}
+            <div class="alert alert-section alert-danger">
+                <i class="eos-icons eos-18 alert-icon">danger</i>
+                <div class="alert-body">
+                    <div class="alert-title">Fencing resource not found</div>
+                    There is not any fencing resource configured. A fencing resource is mandatory for a correct
+                    functioning of the cluster.<br>Find more information <a
+                            href="https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-guide/#sec-ha-requirements-hw"
+                            target="_blank">here</a>.
+                </div>
+            </div>
+        {{- end }}
+        <hr/>
+        <p class='clearfix'></p>
+        <h2>Hosts</h2>
+        {{ template "hosts_table" . }}
+        <hr/>
+        <p class='clearfix'></p>
+        {{- if .Cluster.IsFencingSBD }}
+            {{ template "sbd" .Cluster.SBD }}
+            <hr/>
+            <p class='clearfix'></p>
+        {{- end }}
+        <h2>Node attributes</h2>
+        {{- range .Cluster.Crmmon.NodeAttributes.Nodes }}
+            <h2>{{ .Name }}</h2>
+            <dl class="inline">
+                {{- range .Attributes }}
+                    <dt class="inline">{{ .Name }}</dt>
+                    <dd class="inline">{{ .Value }}</dd>
+                {{- end }}
+            </dl>
+        {{- end }}
+        <hr/>
+        <p class='clearfix'></p>
+        <h2>Resources</h2>
+        <div class='table-responsive'>
+            <table class='table eos-table'>
+                <thead>
+                <tr>
+                    {{- range .Cluster.Crmmon.Nodes }}
+                        <th scope='col'>{{ .Name }}{{ if .DC }} ( DC ){{ end }}</th>
+                    {{- end }}
+                    <th scope='col'>Not running</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{- $Cluster := .Cluster }}
+                {{- range .Cluster.Crmmon.Resources }}
+                    {{- $Resource := . }}
+                    <tr>
+                        {{- $Found := false }}
+                        {{- range $Index, $Node := $Cluster.Crmmon.Nodes }}
+                            {{- if eq $Resource.Node.Name $Node.Name }}
+                                {{- $Found = true }}
+                                <td><span class='badge badge-pill badge-primary'>{{ $Resource.Id }}</span><span
+                                            class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span></td>
+                            {{- else }}
+                                <td></td>
+                            {{- end }}
+                        {{- end }}
+                        {{- if not $Found }}
+                            {{- $Found = false }}
+                            <td><span class='badge badge-pill badge-danger'>{{ $Resource.Id }}</span><span
+                                        class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span></td>
+                        {{- else }}
+                            <td></td>
+                        {{- end }}
+                    </tr>
+                {{- end }}
+                {{- range .Cluster.Crmmon.Clones }}
+                    {{- range .Resources }}
+                        {{- $Resource := . }}
+                        <tr>
+                            {{- $Found := false }}
+                            {{- range $Index, $Node := $Cluster.Crmmon.Nodes }}
+                                {{- if eq $Resource.Node.Name $Node.Name }}
+                                    {{- $Found = true }}
+                                    <td><span class='badge badge-pill badge-primary'>{{ $Resource.Id }}</span><span
+                                                class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span><span
+                                                class='badge badge-pill badge-info'>Clone</span>{{ if or (eq $Resource.Role "Master") (eq $Resource.Role "Slave") }}
+                                    <span class='badge badge-pill badge-info'>{{ $Resource.Role }}</span>{{ end }}</td>
+                                {{- else }}
+                                    <td></td>
+                                {{- end }}
+                            {{- end }}
+                            {{- if not $Found }}
+                                {{- $Found = false }}
+                                <td><span class='badge badge-pill badge-danger'>{{ $Resource.Id }}</span><span
+                                            class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span></td>
+                            {{- else }}
+                                <td></td>
+                            {{- end }}
+                        </tr>
+                    {{- end }}
+                {{- end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{{- end }}
