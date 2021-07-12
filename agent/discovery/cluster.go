@@ -27,26 +27,26 @@ func (c ClusterDiscovery) GetId() string {
 }
 
 // Execute one iteration of a discovery and store the result in the Consul KVStore.
-func (d ClusterDiscovery) Discover() error {
+func (d ClusterDiscovery) Discover() (string, error) {
 	cluster, err := cluster.NewCluster()
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	d.Cluster = cluster
 
 	err = d.Cluster.Store(d.discovery.client)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = storeClusterMetadata(d.discovery.client, cluster.Name, cluster.Id)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return "", nil
 }
 
 func storeClusterMetadata(client consul.Client, clusterName string, clusterId string) error {

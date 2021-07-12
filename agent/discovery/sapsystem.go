@@ -26,28 +26,28 @@ func (d SAPSystemsDiscovery) GetId() string {
 	return d.id
 }
 
-func (d SAPSystemsDiscovery) Discover() error {
+func (d SAPSystemsDiscovery) Discover() (string, error) {
 	systems, err := sapsystem.NewSAPSystemsList()
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	d.SAPSystems = systems
 	for _, s := range d.SAPSystems {
 		err := s.Store(d.discovery.client)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		// Store SAP System, Landscape and Environment names on hosts metadata
 		err = storeSAPSystemTags(d.discovery.client, s)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	return nil
+	return "", nil
 }
 
 func storeSAPSystemTags(client consul.Client, system *sapsystem.SAPSystem) error {

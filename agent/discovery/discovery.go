@@ -10,7 +10,7 @@ type Discovery interface {
 	// Returns an arbitrary unique string identifier of the discovery, so that we can associate it to a Consul check ID
 	GetId() string
 	// Execute the discovery mechanism
-	Discover() error
+	Discover() (string, error)
 }
 
 type BaseDiscovery struct {
@@ -24,9 +24,9 @@ func (d BaseDiscovery) GetId() string {
 }
 
 // Execute one iteration of a discovery and store the result in the Consul KVStore.
-func (d BaseDiscovery) Discover() error {
+func (d BaseDiscovery) Discover() (string, error) {
 	d.host, _ = os.Hostname()
-	return nil
+	return "", nil
 }
 
 // Return a Host Discover instance
