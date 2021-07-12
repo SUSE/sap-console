@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aquasecurity/bench-common/check"
 	consulApi "github.com/hashicorp/consul/api"
 	"github.com/pkg/errors"
+	"github.com/rtorrero/bench-common/check"
 	log "github.com/sirupsen/logrus"
 	"github.com/trento-project/trento/internal"
 	"github.com/trento-project/trento/internal/consul"

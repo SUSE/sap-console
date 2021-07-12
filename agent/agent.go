@@ -3,11 +3,13 @@ package agent
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/consul-template/manager"
+	consulAgent "github.com/hashicorp/consul/agent"
 	consulApi "github.com/hashicorp/consul/api"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -17,28 +19,33 @@ import (
 )
 
 const haConfigCheckerId = "ha_config_checker"
+const maxConsulRegisterRetries = 10
 
 type Agent struct {
-	cfg              Config
-	check            Checker
-	discoveries      []discovery.Discovery
-	consulResultChan chan CheckResult
-	wsResultChan     chan CheckResult
-	webService       *webService
-	consul           consul.Client
-	ctx              context.Context
-	ctxCancel        context.CancelFunc
-	templateRunner   *manager.Runner
+	cfg            Config
+	check          Checker
+	discoveries    []discovery.Discovery
+	wsResultChan   chan CheckResult
+	webService     *webService
+	consul         consul.Client
+	ctx            context.Context
+	ctxCancel      context.CancelFunc
+	templateRunner *manager.Runner
+	consulAgent    *consulAgent.Agent
 }
 
 type Config struct {
-	CheckerTTL       time.Duration
-	DiscoveryTTL     time.Duration
-	WebHost          string
-	WebPort          int
-	InstanceName     string
-	DefinitionsPaths []string
-	ConsulConfigDir  string
+	CheckerTTL        time.Duration
+	DiscoveryTTL      time.Duration
+	WebHost           string
+	WebPort           int
+	InstanceName      string
+	DefinitionsPaths  []string
+	ConsulConfigDir   string
+	AgentHCLConfig    string
+	UseEmbeddedConsul bool
+	ConsulBindAddr    net.IP
+	ConsulSrvAddr     net.IP
 }
 
 func New() (*Agent, error) {
@@ -67,6 +74,15 @@ func NewWithConfig(cfg Config) (*Agent, error) {
 		return nil, errors.Wrap(err, "could not create the consul template runner")
 	}
 
+	var consulAgent *consulAgent.Agent
+	if cfg.UseEmbeddedConsul {
+
+		consulAgent, err = NewConsulAgent(cfg.ConsulBindAddr, cfg.ConsulSrvAddr)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not start embedded consul agent")
+		}
+	}
+
 	ctx, ctxCancel := context.WithCancel(context.Background())
 
 	wsResultChan := make(chan CheckResult, 1)
@@ -85,6 +101,7 @@ func NewWithConfig(cfg Config) (*Agent, error) {
 		webService:     newWebService(wsResultChan),
 		wsResultChan:   wsResultChan,
 		templateRunner: templateRunner,
+		consulAgent:    consulAgent,
 	}
 	return agent, nil
 }
@@ -102,26 +119,51 @@ func DefaultConfig() (Config, error) {
 	}, nil
 }
 
+func DefaultAgentConfig() (Config, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return Config{}, errors.Wrap(err, "could not read the hostname")
+	}
+
+	return Config{
+		InstanceName: hostname,
+		DiscoveryTTL: 15 * time.Second,
+		CheckerTTL:   10 * time.Second,
+	}, nil
+}
+
 // Start the Agent which includes the registration against Consul Agent
 func (a *Agent) Start() error {
-	log.Println("Registering the agent service with Consul...")
-	err := a.registerConsulService()
-	if err != nil {
-		return errors.Wrap(err, "could not register consul service")
-	}
-	log.Println("Consul service registered.")
-
-	defer func() {
-		log.Println("De-registering the agent service with Consul...")
-		err := a.consul.Agent().ServiceDeregister(a.cfg.InstanceName)
-		if err != nil {
-			log.Println("An error occurred while trying to deregisterConsulService the agent service with Consul:", err)
-		} else {
-			log.Println("Consul service de-registered.")
-		}
-	}()
-
+	status := make(chan int, 1)
 	var wg sync.WaitGroup
+
+	// Attempt to register against the consul client
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		log.Println("Registering the agent service with Consul...")
+		defer wg.Done()
+		err := a.startRegisterLoop()
+		if err != nil {
+			log.Fatal("Error while registering consul")
+		} else {
+			status <- 1
+		}
+		log.Println("Consul service registered.")
+	}(&wg)
+
+	if a.cfg.UseEmbeddedConsul {
+		wg.Add(1)
+		// Attempt to start the embedded consul agent
+		go func(wg *sync.WaitGroup) {
+			log.Println("Starting embedded consul agent...")
+			defer wg.Done()
+			err := a.startConsulAgent(status)
+			if err != nil {
+				log.Println("An error ocurred while trying to start Consul: ", err)
+				return
+			}
+		}(&wg)
+	}
 
 	wg.Add(1)
 	// The Checker Loop is handling the compliance-checks being executed regularly
@@ -215,6 +257,21 @@ func (a *Agent) registerConsulService() error {
 	}
 
 	return nil
+}
+
+func (a *Agent) startRegisterLoop() error {
+	attempts := 0
+	for {
+		err := a.registerConsulService()
+		if (err != nil) && (attempts < maxConsulRegisterRetries) {
+			log.Println("An error ocurred while attempting to register:", err)
+			time.Sleep(3 * time.Second)
+			attempts++
+			continue
+		}
+
+		return err
+	}
 }
 
 func (a *Agent) startCheckTicker() {
