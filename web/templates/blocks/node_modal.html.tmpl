@@ -1,0 +1,93 @@
+{{ define "node_modal"}}
+    <div class="modal left fade" id="{{ .Name }}Modal" tabindex="" role="dialog" aria-labelledby="{{ .Name }}ModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title"><i
+                                class="eos-icons eos-18 text-success align-middle">check_circle</i>{{ .Name }}
+                    </h2>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <nav>
+                        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                            <a class="nav-item nav-link active" id="nav-attributes-{{ .Name }}-tab" data-toggle="tab"
+                               href="#nav-attributes-{{ .Name }}"
+                               role="tab" aria-controls="nav-attributes-{{ .Name }}" aria-selected="true">Attributes</a>
+                            <a class="nav-item nav-link" id="nav-resources-{{ .Name }}-tab" data-toggle="tab"
+                               href="#nav-resources-{{ .Name }}"
+                               role="tab" aria-controls="nav-resources-{{ .Name }}" aria-selected="false">Resources</a>
+                        </div>
+                    </nav>
+                    <div class="tab-content" id="nav-tabContent">
+                        <div class="tab-pane fade show active" id="nav-attributes-{{ .Name }}" role="tabpanel"
+                             aria-labelledby="nav-home-tab">
+                            <div class="table-responsive">
+                                <table class="table eos-table">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col">Attribute</th>
+                                        <th scope="col">Value</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {{-  range $key, $value := .Attributes }}
+                                        <tr>
+                                            <td>
+                                                {{ $key }}
+                                            </td>
+                                            <td>
+                                                {{ $value }}
+                                            </td>
+                                        </tr>
+                                    {{- end}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="nav-resources-{{ .Name }}" role="tabpanel"
+                             aria-labelledby="nav-resources-{{ .Name }}-tab">
+                            <div class="table-responsive">
+                                <table class="table eos-table">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col">Id</th>
+                                        <th scope="col">Type</th>
+                                        <th scope="col">Role</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Fail count</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {{-  range .Resources }}
+                                        <tr>
+                                            <td>
+                                                {{ .Id }}
+                                            </td>
+                                            <td>
+                                                {{ .Type }}
+                                            </td>
+                                            <td>
+                                                {{ .Role }}
+                                            </td>
+                                            <td>
+                                                {{ .Status }}
+                                            </td>
+                                            <td>
+                                                {{ .FailCount }}
+                                            </td>
+                                        </tr>
+                                    {{- end}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{{ end }}

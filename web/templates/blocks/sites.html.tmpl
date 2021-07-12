@@ -1,0 +1,58 @@
+{{ define "sites" }}
+    {{- range $site, $nodes := .}}
+        <div class="card eos-table-card mb-4">
+            <div class="card-header">
+                <span class="eos-table-card-title">{{ $site }}</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table eos-table">
+                    <thead>
+                    <tr>
+                        <th scope="col"></th>
+                        <th scope="col">Hostname</th>
+                        <th scope="col">IP</th>
+                        <th scope="col">Virtual IP</th>
+                        <th scope="col">Role</th>
+                        <th scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{- range $nodes}}
+                        <tr>
+                            <td>
+                                {{- if eq .Health "passing" }}
+                                    <i class="eos-icons eos-18 text-success">check_circle</i>
+                                {{- else if eq .Health "warning" }}
+                                    <i class="eos-icons eos-18 text-warning">warning</i>
+                                {{- else }}
+                                    <i class="eos-icons eos-18 text-danger">error</i>
+                                {{- end}}
+                            </td>
+                            <td>
+                                {{ .Name }}
+                            </td>
+                            <td>
+                                {{ .Ip }}
+                            </td>
+                            <td>
+                                {{- range $i, $v := .VirtualIps }}{{- if $i }} ,{{- end }}{{ . }}{{- end }}
+                            </td>
+                            <td>
+                                <span class="badge badge-pill badge-info">HANA {{ .Role }}</span>
+                                <span class="badge badge-pill badge-info">HANA {{ .Status }}</span>
+                            </td>
+
+                            <td class="float-right">
+                                <button class="btn btn-secondary btn-sm" data-toggle="modal"
+                                        data-target="#{{ .Name }}Modal">
+                                    Details
+                                </button>
+                            </td>
+                        </tr>
+                    {{- end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {{- end }}
+{{ end  }}

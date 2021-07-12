@@ -1,65 +1,13 @@
 {{ define "sbd" }}
-    <h2>SBD</h2>
-    <dl class="inline">
-        {{- range $Key, $Value := .Config }}
-            <dt class="inline">{{ $Key }}</dt>
-            <dd class="inline">{{ $Value }}</dd>
-        {{- end }}
-    </dl>
-    <table class='table eos-table'>
-        <thead>
-        <tr>
-            <th scope='col'>Device</th>
-            <th scope='col'>Header version</th>
-            <th scope='col'>UUID</th>
-            <th scope='col'>Slots</th>
-            <th scope='col'>Sector size</th>
-            <th scope='col'>Watchdog timeout</th>
-            <th scope='col'>Allocate timeout</th>
-            <th scope='col'>Loop timeout</th>
-            <th scope='col'>Mgswait timeout</th>
-            <th scope='col'>Status</th>
-        </tr>
-        </thead>
-        <tbody>
+
+    <div class="card-deck mt-4 mb-4">
         {{- range .Devices }}
-            <tr>
-                <td>{{ .Device }}</td>
-                <td>{{ .Dump.Header }}</td>
-                <td>{{ .Dump.Uuid }}</td>
-                <td>{{ .Dump.Slots }}</td>
-                <td>{{ .Dump.SectorSize }}</td>
-                <td>{{ .Dump.TimeoutWatchdog }}</td>
-                <td>{{ .Dump.TimeoutAllocate }}</td>
-                <td>{{ .Dump.TimeoutLoop }}</td>
-                <td>{{ .Dump.TimeoutMsgwait }}</td>
-                <td>
-                    <span class='badge badge-pill badge-{{ if eq .Status "healthy" }}primary{{ else }}danger{{ end }}'>{{ .Status }}</span>
-                </td>
-            </tr>
+            <div class="card">
+                <div class="card-body">
+                    <strong>Device name:</strong> {{ .Device }}<br>
+                    <strong>Location:</strong> -
+                </div>
+            </div>
         {{- end }}
-        </tbody>
-    </table>
-    {{- if eq (len .Devices) 0 }}
-        <div class="alert alert-section alert-danger">
-            <i class="eos-icons eos-18 alert-icon">dange</i>
-            <div class="alert-body">
-                <div class="alert-title">SBD diskless</div>
-                Diskless SBD cannot handle a split brain scenario for a two-node cluster. Use this option only for
-                clusters with more than two nodes.<br>Find more information <a
-                        href="https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-guide/#sec-ha-storage-protect-fencing-number"
-                        target="_blank">here</a>.
-            </div>
-        </div>
-    {{- else if ne (len .Devices) 3 }}
-        <div class="alert alert-section alert-warning">
-            <i class="eos-icons eos-18 alert-icon">warning</i>
-            <div class="alert-body">
-                <div class="alert-title">SBD devices: {{ len .Devices }}</div>
-                It is recommended to configure 3 devices for production environments.<br>Find more information <a
-                        href="https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-guide/#sec-ha-storage-protect-fencing-number"
-                        target="_blank">here</a>.
-            </div>
-        </div>
-    {{- end}}
+    </div>
 {{ end }}

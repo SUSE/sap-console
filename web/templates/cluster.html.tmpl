@@ -1,129 +1,126 @@
 {{ define "content" }}
-    <div class="col">
-        <h6><a href="/clusters">Clusters</a> > {{ .Cluster.Name }}</h6>
-        <h1>Cluster details</h1>
-        <dl class="inline">
-            <dt class="inline">Hosts number</dt>
-            <dd class="inline">{{ .Cluster.Crmmon.Summary.Nodes.Number }}</dd>
-            <dt class="inline">Resource number</dt>
-            <dd class="inline">{{ .Cluster.Crmmon.Summary.Resources.Number }}</dd>
-            <dt class="inline">Fencing type</dt>
-            <dd class="inline">{{ .Cluster.FencingType }}</dd>
-            {{- range .Cluster.Cib.Configuration.CrmConfig.ClusterProperties }}
-                <dt class="inline">{{ .Id }}</dt>
-                <dd class="inline">{{ .Value }}</dd>
-            {{- end }}
-        </dl>
-        {{- if not .Cluster.IsFencingEnabled }}
-            <div class="alert alert-section alert-danger">
-                <i class="eos-icons eos-18 alert-icon">danger</i>
-                <div class="alert-body">
-                    <div class="alert-title">Fencing disabled</div>
-                    Fencing is not enabled in the cluster. Fencing is mandatory for a correct functioning of the
-                    cluster.<br>Find more information <a
-                            href="https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-guide/#sec-ha-requirements-hw"
-                            target="_blank">here</a>.
-                </div>
-            </div>
-        {{- end }}
-        {{- if not .Cluster.FencingResourceExists }}
-            <div class="alert alert-section alert-danger">
-                <i class="eos-icons eos-18 alert-icon">danger</i>
-                <div class="alert-body">
-                    <div class="alert-title">Fencing resource not found</div>
-                    There is not any fencing resource configured. A fencing resource is mandatory for a correct
-                    functioning of the cluster.<br>Find more information <a
-                            href="https://documentation.suse.com/sle-ha/15-SP1/single-html/SLE-HA-guide/#sec-ha-requirements-hw"
-                            target="_blank">here</a>.
-                </div>
-            </div>
-        {{- end }}
-        <hr/>
-        <p class='clearfix'></p>
-        <h2>Hosts</h2>
-        {{ template "hosts_table" . }}
-        <hr/>
-        <p class='clearfix'></p>
-        {{- if .Cluster.IsFencingSBD }}
-            {{ template "sbd" .Cluster.SBD }}
-            <hr/>
-            <p class='clearfix'></p>
-        {{- end }}
-        <h2>Node attributes</h2>
-        {{- range .Cluster.Crmmon.NodeAttributes.Nodes }}
-            <h2>{{ .Name }}</h2>
-            <dl class="inline">
-                {{- range .Attributes }}
-                    <dt class="inline">{{ .Name }}</dt>
-                    <dd class="inline">{{ .Value }}</dd>
-                {{- end }}
-            </dl>
-        {{- end }}
-        <hr/>
-        <p class='clearfix'></p>
-        <h2>Resources</h2>
-        <div class='table-responsive'>
-            <table class='table eos-table'>
-                <thead>
-                <tr>
-                    {{- range .Cluster.Crmmon.Nodes }}
-                        <th scope='col'>{{ .Name }}{{ if .DC }} ( DC ){{ end }}</th>
-                    {{- end }}
-                    <th scope='col'>Not running</th>
-                </tr>
-                </thead>
-                <tbody>
-                {{- $Cluster := .Cluster }}
-                {{- range .Cluster.Crmmon.Resources }}
-                    {{- $Resource := . }}
-                    <tr>
-                        {{- $Found := false }}
-                        {{- range $Index, $Node := $Cluster.Crmmon.Nodes }}
-                            {{- if eq $Resource.Node.Name $Node.Name }}
-                                {{- $Found = true }}
-                                <td><span class='badge badge-pill badge-primary'>{{ $Resource.Id }}</span><span
-                                            class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span></td>
-                            {{- else }}
-                                <td></td>
-                            {{- end }}
-                        {{- end }}
-                        {{- if not $Found }}
-                            {{- $Found = false }}
-                            <td><span class='badge badge-pill badge-danger'>{{ $Resource.Id }}</span><span
-                                        class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span></td>
-                        {{- else }}
-                            <td></td>
-                        {{- end }}
-                    </tr>
-                {{- end }}
-                {{- range .Cluster.Crmmon.Clones }}
-                    {{- range .Resources }}
-                        {{- $Resource := . }}
-                        <tr>
-                            {{- $Found := false }}
-                            {{- range $Index, $Node := $Cluster.Crmmon.Nodes }}
-                                {{- if eq $Resource.Node.Name $Node.Name }}
-                                    {{- $Found = true }}
-                                    <td><span class='badge badge-pill badge-primary'>{{ $Resource.Id }}</span><span
-                                                class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span><span
-                                                class='badge badge-pill badge-info'>Clone</span>{{ if or (eq $Resource.Role "Master") (eq $Resource.Role "Slave") }}
-                                    <span class='badge badge-pill badge-info'>{{ $Resource.Role }}</span>{{ end }}</td>
-                                {{- else }}
-                                    <td></td>
-                                {{- end }}
-                            {{- end }}
-                            {{- if not $Found }}
-                                {{- $Found = false }}
-                                <td><span class='badge badge-pill badge-danger'>{{ $Resource.Id }}</span><span
-                                            class='badge badge-pill badge-info'>{{ $Resource.Agent }}</span></td>
-                            {{- else }}
-                                <td></td>
-                            {{- end }}
-                        </tr>
-                    {{- end }}
-                {{- end }}
-                </tbody>
-            </table>
+    <h1>Cluster details</h1>
+    <div class="row">
+        <div class="col">
+            <h6>
+                <a href="/clusters">Clusters</a> > {{ .Cluster.Name }}
+            </h6>
+        </div>
+        <div class="col text-right">
+            <i class="eos-icons eos-dark eos-18 ">schedule</i> Updated at:
+            <span id="last_update" class="text-nowrap text-muted">
+                Not available
+            </span>
         </div>
     </div>
+    {{ $firstNode := index .Nodes 0 }}
+    <div class="border-bottom border-top mb-4">
+        <div class="row">
+            <div class="col-sm-9 border-right">
+                <div class="row mt-5 mb-5">
+                    <div class="col-3">
+                        <strong>Cluster name:</strong><br>
+                        <span class="text-muted">{{ .Cluster.Name }}</span>
+                    </div>
+                    <div class="col-3">
+                        <strong>Cluster type:</strong><br>
+                        <span class="text-muted">-</span>
+                    </div>
+                    <div class="col-6">
+                        <strong>HANA system replication mode:</strong><br>
+                        <span class="text-muted">{{ index $firstNode.Attributes "hana_prd_srmode" }}</span>
+                    </div>
+
+                    <div class="col-3 mt-5">
+                        <strong>Pacemaker status:</strong><br>
+                        <span class="text-muted">-</span>
+                        {{/*                        <span class="badge badge-pill badge-primary ml-0">* Healthy</span>*/}}
+                    </div>
+                    <div class="col-3 mt-5">
+                        <strong>SAPHanaSR health state:</strong><br>
+                        {{ $healthState := $firstNode.HealthState }}
+                        {{- if eq $healthState  "4" }}
+                            <i class="eos-icons eos-18 text-success">fiber_manual_record</i>
+                            <span class="text-muted">{{ $firstNode.HealthState }}</span>
+                        {{- else  if or (eq $healthState "2") (eq $healthState "3")  }}
+                            <i class="eos-icons eos-18 text-warning">fiber_manual_record</i>
+                            <span class="text-muted">{{ $firstNode.HealthState }}</span>
+                        {{- else  if or (eq $healthState "1")  }}
+                            <i class="eos-icons eos-18 text-danger">fiber_manual_record</i>
+                            <span class="text-muted">{{ $firstNode.HealthState }}</span>
+                        {{- else }}
+                            -
+                        {{- end}}
+                    </div>
+                    <div class="col-6 mt-5">
+                        <strong>HANA secondary sync state:</strong><br>
+                        {{ $secondarySyncState := .Nodes.SecondarySyncState }}
+                        {{ $badgeClass := "badge-primary" }}
+                        {{- if eq $secondarySyncState "SFAIL" }}
+                            {{ $badgeClass =  "badge-danger" }}
+                        {{- end }}
+                        <span class="badge badge-pill {{ $badgeClass }} ml-0">{{ $secondarySyncState }}</span>
+                    </div>
+
+                    <div class="col-3 mt-5">
+                        <strong>Stonith type:</strong><br>
+                        <span class="text-muted">{{ .Cluster.FencingType }}</span>
+                    </div>
+                    <div class="col-3 mt-5">
+                        <strong>CIB last written:</strong><br>
+                        <span class="text-muted">{{ .Cluster.Crmmon.Summary.LastChange.Time }}</span>
+                    </div>
+                    <div class="col-6 mt-5">
+                        <strong>HANA system replication operation mode:</strong><br>
+                        <span class="text-muted">{{ index $firstNode.Attributes "hana_prd_op_mode" }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="mt-3">
+                    <h5>Health</h5>
+                    <div class="alert alert-inline alert-danger">
+                        <i class="eos-icons eos-18 alert-icon">error</i>
+                        <div class="alert-body">Critical</div>
+                        {{ .Nodes.CriticalCount }}
+                    </div>
+                    <div class="alert alert-inline alert-warning">
+                        <i class="eos-icons eos-18 alert-icon">warning</i>
+                        <div class="alert-body">Warning</div>
+                        {{ .Nodes.WarningCount }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4>Stopped resources</h4>
+    <div class="row mt-4 mb-4">
+        <div class="col-xl-12">
+            {{- range .StoppedResources }}
+                <span class="badge badge-pill badge-secondary ml-0">{{ .Id }}</span>
+            {{- else }}
+                <p class="text-muted">No stopped resources</p>
+            {{- end}}
+        </div>
+    </div>
+
+    <h3>Pacemaker Site details</h3>
+    <div class="row mt-4">
+        <div class="col-xl-12">
+            {{ template "sites" .Nodes.GroupBySite }}
+        </div>
+    </div>
+    <hr>
+
+    <h3>SBD/Stonith</h3>
+    {{- if .Cluster.IsFencingSBD }}
+        {{ template "sbd" .Cluster.SBD }}
+        <hr/>
+        <p class='clearfix'></p>
+    {{- end }}
+
+    {{- range .Nodes }}
+        {{ template "node_modal" . }}
+    {{- end}}
 {{- end }}
