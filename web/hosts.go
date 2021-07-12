@@ -15,6 +15,28 @@ import (
 	"github.com/trento-project/trento/internal/sapsystem"
 )
 
+type HealthContainer struct {
+	Passing  int
+	Warning  int
+	Critical int
+	Layout   string
+}
+
+func NewHealthContainer(hostList hosts.HostList) *HealthContainer {
+	h := &HealthContainer{}
+	for _, host := range hostList {
+		switch host.Health() {
+		case "passing":
+			h.Passing += 1
+		case "warning":
+			h.Warning += 1
+		case "critical":
+			h.Critical += 1
+		}
+	}
+	return h
+}
+
 func NewHostListHandler(client consul.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := c.Request.URL.Query()
@@ -33,10 +55,14 @@ func NewHostListHandler(client consul.Client) gin.HandlerFunc {
 			return
 		}
 
+		health := NewHealthContainer(hosts)
+		health.Layout = "horizontal"
+
 		c.HTML(http.StatusOK, "hosts.html.tmpl", gin.H{
 			"Hosts":          hosts,
 			"Filters":        filters,
 			"AppliedFilters": query,
+			"Health":         health,
 		})
 	}
 }

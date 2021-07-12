@@ -75,3 +75,38 @@ dt {
   padding: 75px 75px 0 75px !important;
   max-width: 100% !important;
 }
+
+.horizontal-container {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.health-container .alert-inline {
+  width: 150px;
+  margin-right: 15px;
+}
+
+.buttons-box {
+  margin-left: 150px;
+  display: inline-block;
+}
+
+hr.margin-10px {
+  margin: 10px 0;
+}
+
+td.row-status {
+  width: 0px;
+}
+
+td i.success {
+  color: $eos-bc-green-500;
+}
+
+td i.warning {
+  color: $eos-bc-yellow-900;
+}
+
+td i.critical {
+  color: $eos-bc-red-500;
+}

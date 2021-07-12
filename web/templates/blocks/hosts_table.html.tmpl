@@ -3,6 +3,7 @@
         <table class='table eos-table'>
             <thead>
             <tr>
+                <th scope='col'></th>
                 <th scope='col'>Name</th>
                 <th scope='col'>Address</th>
                 <th scope='col'>Cloud provider</th>
@@ -10,12 +11,14 @@
                 <th scope='col'>System</th>
                 <th scope='col'>Landscape</th>
                 <th scope='col'>Environment</th>
-                <th scope='col'>Status</th>
             </tr>
             </thead>
             <tbody>
             {{- range .Hosts }}
                 <tr>
+                    <td class="row-status">
+                        <i class="eos-icons eos-18 {{ if eq .Health "passing" }} success">check_circle{{ else if eq .Health "warning" }} warning">warning{{ else }} critical">error{{ end }}</i>
+                    </td>
                     <td>
                         <a href='/hosts/{{ .Name }}'>
                             {{ .Name }}
@@ -42,10 +45,6 @@
                         <a href='/environments/{{ index .TrentoMeta "trento-sap-environment" }}'>
                             {{ index .TrentoMeta "trento-sap-environment" }}
                         </a>
-                    </td>
-                    <td>
-                        {{- $Health := .Health }}
-                        <span class='badge badge-pill badge-{{ if eq $Health "passing" }}primary{{ else if eq $Health "warning" }}warning{{ else }}danger{{ end }}'>{{ $Health }}</span>
                     </td>
                 </tr>
             {{- else }}

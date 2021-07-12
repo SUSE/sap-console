@@ -12,7 +12,60 @@ import (
 	"github.com/tdewolff/minify/v2/html"
 	"github.com/trento-project/trento/internal/consul"
 	"github.com/trento-project/trento/internal/consul/mocks"
+	"github.com/trento-project/trento/internal/hosts"
 )
+
+func TestNewHealthContainer(t *testing.T) {
+	consulInst := new(mocks.Client)
+	health := new(mocks.Health)
+	consulInst.On("Health").Return(health)
+
+	host1 := hosts.NewHost(consulApi.Node{Node: "node1"}, consulInst)
+	host2 := hosts.NewHost(consulApi.Node{Node: "node2"}, consulInst)
+	host3 := hosts.NewHost(consulApi.Node{Node: "node3"}, consulInst)
+	host4 := hosts.NewHost(consulApi.Node{Node: "node4"}, consulInst)
+	host5 := hosts.NewHost(consulApi.Node{Node: "node5"}, consulInst)
+	host6 := hosts.NewHost(consulApi.Node{Node: "node6"}, consulInst)
+
+	nodes := hosts.HostList{
+		&host1, &host2, &host3, &host4, &host5, &host6,
+	}
+
+	passHealthChecks := consulApi.HealthChecks{
+		&consulApi.HealthCheck{
+			Status: consulApi.HealthPassing,
+		},
+	}
+
+	warningHealthChecks := consulApi.HealthChecks{
+		&consulApi.HealthCheck{
+			Status: consulApi.HealthCritical,
+		},
+	}
+
+	criticalHealthChecks := consulApi.HealthChecks{
+		&consulApi.HealthCheck{
+			Status: consulApi.HealthWarning,
+		},
+	}
+
+	health.On("Node", "node1", (*consulApi.QueryOptions)(nil)).Return(passHealthChecks, nil, nil)
+	health.On("Node", "node2", (*consulApi.QueryOptions)(nil)).Return(warningHealthChecks, nil, nil)
+	health.On("Node", "node3", (*consulApi.QueryOptions)(nil)).Return(criticalHealthChecks, nil, nil)
+	health.On("Node", "node4", (*consulApi.QueryOptions)(nil)).Return(passHealthChecks, nil, nil)
+	health.On("Node", "node5", (*consulApi.QueryOptions)(nil)).Return(warningHealthChecks, nil, nil)
+	health.On("Node", "node6", (*consulApi.QueryOptions)(nil)).Return(criticalHealthChecks, nil, nil)
+
+	hCont := NewHealthContainer(nodes)
+
+	expectedHealth := &HealthContainer{
+		Passing:  2,
+		Warning:  2,
+		Critical: 2,
+	}
+
+	assert.Equal(t, expectedHealth, hCont)
+}
 
 func TestHostsListHandler(t *testing.T) {
 	nodes := []*consulApi.Node{
@@ -38,6 +91,17 @@ func TestHostsListHandler(t *testing.T) {
 				"trento-cloud-provider":  "aws",
 			},
 		},
+		{
+			Node:       "buzz",
+			Datacenter: "dc",
+			Address:    "192.168.1.3",
+			Meta: map[string]string{
+				"trento-sap-environment": "env2",
+				"trento-sap-landscape":   "land2",
+				"trento-sap-system":      "sys2",
+				"trento-cloud-provider":  "gcp",
+			},
+		},
 	}
 
 	fooHealthChecks := consulApi.HealthChecks{
@@ -49,6 +113,12 @@ func TestHostsListHandler(t *testing.T) {
 	barHealthChecks := consulApi.HealthChecks{
 		&consulApi.HealthCheck{
 			Status: consulApi.HealthCritical,
+		},
+	}
+
+	buzzHealthChecks := consulApi.HealthChecks{
+		&consulApi.HealthCheck{
+			Status: consulApi.HealthWarning,
 		},
 	}
 
@@ -117,6 +187,7 @@ func TestHostsListHandler(t *testing.T) {
 
 	health.On("Node", "foo", (*consulApi.QueryOptions)(nil)).Return(fooHealthChecks, nil, nil)
 	health.On("Node", "bar", (*consulApi.QueryOptions)(nil)).Return(barHealthChecks, nil, nil)
+	health.On("Node", "buzz", (*consulApi.QueryOptions)(nil)).Return(buzzHealthChecks, nil, nil)
 
 	deps := DefaultDependencies()
 	deps.consul = consulInst
@@ -152,11 +223,17 @@ func TestHostsListHandler(t *testing.T) {
 
 	assert.Equal(t, 200, resp.Code)
 	assert.Contains(t, minified, "Hosts")
+	assert.Regexp(t, regexp.MustCompile("<div.*alert-success.*<i.*check_circle.*</i>.*Passing.*1"), minified)
+	assert.Regexp(t, regexp.MustCompile("<div.*alert-warning.*<i.*warning.*</i>.*Warning.*1"), minified)
+	assert.Regexp(t, regexp.MustCompile("<div.*alert-danger.*<i.*error.*</i>.*Critical.*1"), minified)
+	assert.Regexp(t, regexp.MustCompile("<td.*<i.*success.*check_circle.*</i></td><td>.*foo.*</td><td>192.168.1.1</td><td>.*azure.*</td><td>.*sys1.*</td><td>.*land1.*</td><td>.*env1.*</td>"), minified)
+	assert.Regexp(t, regexp.MustCompile("<td.*<i.*success.*check_circle.*</i></td><td>.*foo.*</td><td>192.168.1.1</td><td>.*azure.*</td><td>.*sys1.*</td><td>.*land1.*</td><td>.*env1.*</td>"), minified)
 	assert.Regexp(t, regexp.MustCompile("<select name=trento-sap-environment.*>.*env1.*env2.*</select>"), minified)
 	assert.Regexp(t, regexp.MustCompile("<select name=trento-sap-landscape.*>.*land1.*land2.*land3.*</select>"), minified)
 	assert.Regexp(t, regexp.MustCompile("<select name=trento-sap-system.*>.*sys1.*sys2.*sys3.*</select>"), minified)
-	assert.Regexp(t, regexp.MustCompile("<td>.*foo.*</td><td>192.168.1.1</td><td>.*azure.*</td><td>.*sys1.*</td><td>.*land1.*</td><td>.*env1.*</td><td>.*passing.*</td>"), minified)
-	assert.Regexp(t, regexp.MustCompile("<td>.*bar.*</td><td>192.168.1.2</td><td>.*aws.*</td><td>.*sys2.*</td><td>.*land2.*</td><td>.*env2.*</td><td>.*critical.*</td>"), minified)
+	assert.Regexp(t, regexp.MustCompile("<td.*<i.*success.*check_circle.*</i></td><td>.*foo.*</td><td>192.168.1.1</td><td>.*azure.*</td><td>.*sys1.*</td><td>.*land1.*</td><td>.*env1.*</td>"), minified)
+	assert.Regexp(t, regexp.MustCompile("<td.*<i.*critical.*error.*</i></td><td>.*bar.*</td><td>192.168.1.2</td><td>.*aws.*</td><td>.*sys2.*</td><td>.*land2.*</td><td>.*env2.*</td>"), minified)
+	assert.Regexp(t, regexp.MustCompile("<td.*<i.*warning.*warning.*</i></td><td>.*buzz.*</td><td>192.168.1.3</td><td>.*gcp.*</td><td>.*sys2.*</td><td>.*land2.*</td><td>.*env2.*</td>"), minified)
 }
 
 func TestHostHandler(t *testing.T) {

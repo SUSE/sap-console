@@ -1,0 +1,17 @@
+{{ define "health_container" }}
+<h5>Health</h5>
+<div class="health-container{{ if eq .Layout "horizontal" }} horizontal-container{{ end }}">
+    <div class="alert alert-inline alert-success">
+        <i class="eos-icons eos-18 alert-icon">check_circle</i>
+        <div class="alert-body">Passing</div>
+    {{ .Passing }}</div>
+    <div class="alert alert-inline alert-warning">
+        <i class="eos-icons eos-18 alert-icon">warning</i>
+        <div class="alert-body">Warning</div>
+    {{ .Warning }}</div>
+    <div class="alert alert-inline alert-danger">
+        <i class="eos-icons eos-18 alert-icon">error</i>
+        <div class="alert-body">Critical</div>
+    {{ .Critical }}</div>
+</div>
+{{ end }}
