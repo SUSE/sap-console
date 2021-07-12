@@ -672,4 +672,39 @@ groups:
 
           ## References
           - section 9.1.2 https://documentation.suse.com/sbp/all/single-html/SLES4SAP-hana-sr-guide-PerfOpt-15/
+      - id: 1.5.3
+        description: "ntp clock synchronization is working and using the slew mode"
+        audit: |
+          # The third field of ntpq -p is the stratum and if it's 16
+          # the sync is disabled. Make sure it's not 16
+          if ! sudo ntpq -pn | grep "No association ID's returned" \
+          && sudo ntpq -pn | awk '{print $1 " " $3}' | grep -e '^\*' | awk '{print $2}' | grep -e "[0-9]" | grep -v 16; then
+            if ps aux | grep "/usr/sbin/[n]tpd" | grep "\-x"; then echo passed; fi
+          fi
+        tests:
+          test_items:
+            - flag: "passed"
+        remediation: |
+          ## Abstract
+          Check that ntp clock synchronization is working and the "slew" mode
+          is enabled.
+
+          ## Remediation
+          If you only want to set-up NTP clients execute the following commands:
+          ```
+          zypper in -y ntp
+          echo 'server <server-ip-or-name> iburst' >> /etc/ntp.conf
+          systemctl restart ntpd
+          ntpq -p
+          ```
+          Where the server-ip-or-name is the name or ip of an NTP server.
+          You can add many NTP servers into the /etc/ntp.conf file.
+
+          To run the ntpd service in the "slew" mode set the -x flag for the
+          NTPD_OPTIONS in the /etc/sysconfig/ntp file. For example
+          ```NTPD_OPTIONS="-x -g -u ntp:ntp"``` and restart the service
+          ```systemctl restart ntpd```
+
+          ## References
+          - https://launchpad.support.sap.com/#/notes/2578899.
         scored: true
