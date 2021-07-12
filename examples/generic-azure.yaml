@@ -673,3 +673,73 @@ groups:
           ## References
           - section 9.1.2 https://documentation.suse.com/sbp/all/single-html/SLES4SAP-hana-sr-guide-PerfOpt-15/
         scored: true
+      - id: 1.5.3
+        description: "<sid>adm user and its <sid> group exist and enabled"
+        audit: |
+          # Get SIDs from cibadmin
+          IFS=' ' read -r -a sid_list_raw <<< $(sudo cibadmin -Q | xmllint -xpath '//primitive//nvpair[@name="SID"]/@value' -)
+          # Parse sids and makes them unique. There is possibly a more beautiful way to do it with regexp-s rather than with loops.
+          sid_list_not_unique=$(for i in "${sid_list_raw[@]}"; do echo $i | sed -e "s/.*value=\"\(...\)\".*/\1/" | tr '[:upper:]' '[:lower:]' ; done)
+          sid_list_sorted_and_unique=$(echo ${sid_list_not_unique[@]} | tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+          # Check the /etc/nsswitch.conf
+          if ! cat /etc/nsswitch.conf | grep "passwd:" | grep -q "compat\|files"; then echo failed=true; fi
+          if ! cat /etc/nsswitch.conf | grep "group:" | grep -q "compat\|files"; then echo failed=true; fi
+
+          # Check the /etc/passwd and /etc/group
+          for sid in ${sid_list_sorted_and_unique}
+          do
+            if ! cat /etc/passwd | cut -d: -f1 | grep -q ${sid}adm; then echo failed=true; fi
+            if cat /etc/passwd | grep -e "^${sid}adm" | cut -d: -f7 | grep -q "nologin"; then echo failed=true; fi
+            if ! cat /etc/group | cut -d: -f1,4 | grep "^sapsys:" | grep -q ${sid}adm; then echo failed=true; fi
+          done
+        tests:
+          test_items:
+            - flag: failed
+              compare:
+                op: noteq
+                value: true
+        remediation: |
+          ## Abstract
+          The technical users <sid>adm is in the sapsys group and he is defined locally.
+
+          ## Remediation
+          Create and enable the technical user and group.
+
+          ## References
+          - Section 2 in https://documentation.suse.com/sbp/all/single-html/SLES4SAP-hana-sr-guide-PerfOpt-15/
+        scored: true
+      - id: 1.5.4
+        description: "<sid>adm user should not be in an Active Directory"
+        audit: |
+          if cat /etc/krb5.conf | grep -q "default_realm ="; then
+
+            # Get SIDs from cibadmin
+            IFS=' ' read -r -a sid_list_raw <<< $(sudo cibadmin -Q | xmllint -xpath '//primitive//nvpair[@name="SID"]/@value' -)
+            # Parse sids and makes them unique. There is possibly a more beautiful way to do it with regexp-s rather than with loops.
+            sid_list_not_unique=$(for i in "${sid_list_raw[@]}"; do echo $i | sed -e "s/.*value=\"\(...\)\".*/\1/" | tr '[:upper:]' '[:lower:]' ; done)
+            sid_list_sorted_and_unique=$(echo ${sid_list_not_unique[@]} | tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+            # Check if the user exists and reachable from active directory
+            for sid in ${sid_list_sorted_and_unique}
+            do
+              realm=$(cat /etc/krb5.conf | grep "default_realm =" | sed "s/^.*=//" | xargs)
+              if kinit -R ${sid}adm@$realm; then echo ad_admuser_exists=true; fi
+            done
+          fi
+        tests:
+          test_items:
+            - flag: ad_admuser_exists
+              compare:
+                op: noteq
+                value: true
+        remediation: |
+          ## Abstract
+          The technical users <sid>adm should not be reachable via Active Directory.
+
+          ## Remediation
+          Create and enable the technical user locally.
+
+          ## References
+          - Section 2 in https://documentation.suse.com/sbp/all/single-html/SLES4SAP-hana-sr-guide-PerfOpt-15/
+        scored: false
