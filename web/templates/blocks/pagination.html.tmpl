@@ -1,0 +1,38 @@
+{{- define "pagination" -}}
+  <!-- find pagination js code in layout.js -->
+  <nav class='pagination-wrap margin-top-m justify-content-end' aria-label='Page navigation example'>
+    <div class='pagination-count'>
+      Total <strong>{{ .ItemCount }} items</strong>
+    </div>
+    <ul class='pagination-count pagination'>
+      <li value='1' class='page-item'><a class='page-link' href='#'>First</a></li>
+      {{ $Pages := .GetCurrentPages }}
+      {{- range $Page := $Pages }}
+      <li value='{{ $Page.Index }}' class='page-item {{ if $Page.Active }}active{{ end }}'><a class='page-link' href='#'>{{ $Page.Index }}</a></li>
+      {{- end }}
+      <li value='{{ .PageCount }}'class='page-item'><a class='page-link' href='#'>Last ({{ .PageCount }})</a></li>
+    </ul>
+    <div class='pagination-actions margin-right-m'>
+      <!--
+      <div class='goto-field'>
+        Go to
+        <input class='form-control' id='username' type='text'>
+      </div>
+      -->
+      <div class='pagination-text'>
+        Items per page
+      </div>
+      <div class='dropdown'>
+        <button class='btn btn-sm btn-secondary dropdown-toggle' type='button' data-toggle='dropdown'>
+          <i class='eos-icons eos-18'>keyboard_arrow_down</i>
+          {{ .PerPage }}
+        </button>
+        <div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>
+          {{- range $i := .GetPerPages }}
+          <a class='dropdown-item' href='#'>{{ $i }}</a>
+          {{- end }}
+        </div>
+      </div>
+    </div>
+  </nav>
+{{- end -}}

@@ -12,46 +12,36 @@
                     });
                 });
             </script>
-            <form method="GET" action="/hosts">
-                <select name="trento-sap-environment" id="trento-sap-environment" class="selectpicker" multiple
-                        data-selected-text-format="count > 3" data-actions-box="true" title="SAP environment...">
-                    {{- range index .Filters "environments" }}
-                        <option value="{{ . }}">{{ . }}</option>
-                    {{- end }}
-                </select>
-                <select name="trento-sap-landscape" id="trento-sap-landscape" class="selectpicker" multiple
-                        data-selected-text-format="count > 3" data-actions-box="true" title="SAP landscape...">
-                    {{- range index .Filters "landscapes" }}
-                        <option value="{{ . }}">{{ . }}</option>
-                    {{- end }}
-                </select>
+            <select name="trento-sap-environment" id="trento-sap-environment" class="selectpicker" multiple
+                    data-selected-text-format="count > 3" data-actions-box="true" title="SAP environment...">
+                {{- range index .Filters "environments" }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{- end }}
+            </select>
+            <select name="trento-sap-landscape" id="trento-sap-landscape" class="selectpicker" multiple
+                    data-selected-text-format="count > 3" data-actions-box="true" title="SAP landscape...">
+                {{- range index .Filters "landscapes" }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{- end }}
+            </select>
 
-                <select name="trento-sap-system" id="trento-sap-system" class="selectpicker" multiple
-                        data-selected-text-format="count > 3" data-actions-box="true" title="SAP system...">
-                    {{- range index .Filters "sapsystems" }}
-                        <option value="{{ . }}">{{ . }}</option>
-                    {{- end }}
-                </select>
+            <select name="trento-sap-system" id="trento-sap-system" class="selectpicker" multiple
+                    data-selected-text-format="count > 3" data-actions-box="true" title="SAP system...">
+                {{- range index .Filters "sapsystems" }}
+                    <option value="{{ . }}">{{ . }}</option>
+                {{- end }}
+            </select>
 
-                <select name="health" id="health" class="selectpicker" multiple data-selected-text-format="count > 3"
-                        data-actions-box="true" title="Health status...">
-                    <option data-content="<span class='badge badge-success'>Passing</span>" value="passing">Passing
-                    </option>
-                    <option data-content="<span class='badge badge-warning'>Warning</span>" value="warning">Warning
-                    </option>
-                    <option data-content="<span class='badge badge-danger'>Critical</span>" value="critical">Critical
-                    </option>
-                </select>
-                <button type='submit' class='btn btn-icon btn-secondary' data-toggle='tooltip' title='Apply filters'>
-                    <i class='eos-icons eos-18'>autorenew</i>
-                </button>
-                <button id="clean" class='btn btn-icon btn-secondary' data-toggle='tooltip' title='Reset filters'>
-                    <i class='eos-icons eos-18'>cleanup</i>
-                </button>
-            </form>
+            <select name="health" id="health" class="selectpicker" multiple data-selected-text-format="count > 3"
+                    data-actions-box="true" title="Health status...">
+                <option data-content="<span class='badge badge-success'>Passing</span>" value="passing">Passing</option>
+                <option data-content="<span class='badge badge-warning'>Warning</span>" value="warning">Warning</option>
+                <option data-content="<span class='badge badge-danger'>Critical</span>" value="critical">Critical</option>
+            </select>
         </div>
         <hr/>
         <p class='clearfix'></p>
         {{ template "hosts_table" . }}
+        {{ template "pagination" .Pagination }}
     </div>
 {{ end }}
